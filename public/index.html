@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shan Chat</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-box" id="chat"></div>
+        <p id="typing"></p>
+        <div class="input-container">
+            <input type="text" id="message" placeholder="Type a message..." autocomplete="off">
+            <button id="sendBtn">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const chat = document.getElementById("chat");
+        const messageInput = document.getElementById("message");
+        const typingText = document.getElementById("typing");
+
+        function convertLinks(text) {
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+
+            // Replace URLs with clickable links
+            let formattedText = text.replace(urlRegex, (url) => {
+                return `<a href="${url}" target="_blank" class="link-wrap">${url}</a>`;
+            });
+
+            // Replace '\n' with '<br>'
+            return formattedText.replace(/\n/g, "<br>");
+        }
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message) {
+                socket.emit("message", message);
+                messageInput.value = "";
+            }
+        }
+
+        messageInput.addEventListener("input", () => {
+            socket.emit("typing", "Someone is typing...");
+        });
+
+        messageInput.addEventListener("keypress", (event) => {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        });
+
+        sendBtn.addEventListener("click", () => {
+            sendMessage();
+        });
+
+        socket.on("typing", (data) => {
+            typingText.textContent = data;
+            setTimeout(() => typingText.textContent = "", 1000);
+        });
+
+        socket.on("message", (msg) => {
+            const div = document.createElement("div");
+            div.classList.add("message");
+            div.innerHTML = convertLinks(msg); // Convert links to <a> tag
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight; // Auto scroll
+        });
+    </script>
+</body>
+</html>
